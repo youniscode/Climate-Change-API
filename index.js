@@ -1,5 +1,5 @@
 // Defining the PORT
-const PORT = 8000
+const PORT = process.env.PORT || 8000
 // Initialize Express
 const express = require('express')
 const axios = require('axios')
@@ -27,7 +27,7 @@ const newspapers = [
 
 
 ]
-// Create an empty array to return the contains inside as json format
+// Create an empty array to return the contains inside, as json format
 const articles = []
 
 newspapers.forEach(newspapers => {
@@ -61,8 +61,31 @@ app.get('/news', (req, res) => {
 })
 
 // route to get news from one newspaper article
-app.get('/news/:newspaperId', async (req, res) => {
-  const newspaperID = res.params.newspaperId
+app.get('/news/:newspaperId', (req, res) => {
+  const newspaperId = req.params.newspaperId
+
+  // filter the array and get one specific website
+  const newspaperAddress = newspapers.filter(newspaper => newspaper.name == newspaperId)[0].address
+  const newspaperBase = newspapers.filter(newspaper => newspaper.name == newspaperId)[0].base
+
+
+  axios.get(newspaperAddress)
+    .then(response => {
+      const html = response.data
+      const $ = cheerio.load(html)
+      const specificArticles = []
+
+      $('a:contains("climate")', html).each(function () {
+        const title = $(this).text()
+        const url = $(this).attr('href')
+        specificArticles.push({
+          title,
+          url: newspaperBase + url,
+          source: newspaperId
+        })
+      })
+      res.json(specificArticles)
+    }).catch(err => console.log(err))
 })
 
 
